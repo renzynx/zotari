@@ -1,0 +1,117 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./sqlite.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
+  Webhook Webhook[]
+  Files   File[] // Added relation to files
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  url       String
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([url])
+}
+
+// New models for file management
+
+model File {
+  id          String      @id @default(cuid())
+  name        String // Original filename
+  size        Int // Total file size in bytes
+  type        String // MIME type
+  status      String      @default("PENDING")
+  chunks      FileChunk[] // Relation to chunks
+  userId      String // Who uploaded this file
+  uniqueId    String // A unique identifier for this file
+  totalChunks Int // Total number of chunks expected
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([uniqueId])
+}
+
+model FileChunk {
+  id            String   @id @default(cuid())
+  fileId        String // Related file
+  chunkIndex    Int // Position in the sequence (0-based)
+  size          Int // Size of this chunk in bytes
+  discordUrl    String // Discord CDN URL to the file
+  webhookId     String? // Which webhook was used
+  discordFileId String? // Discord's own attachment ID if available
+  messageId     String? // Discord message ID containing this chunk
+  status        String   @default("available") // Status of this chunk
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, chunkIndex]) // Each chunk must be unique per file and position
+  @@index([discordUrl])
+}
