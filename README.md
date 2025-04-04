@@ -2,6 +2,10 @@
 
 Zotari is a file storage solution that leverages Discord webhooks to store files of any size by splitting them into manageable chunks. This approach provides essentially unlimited storage using Discord's infrastructure at no cost.
 
+## Preview
+
+![alt text](<Screenshot 2025-04-05 024917.png>)
+
 ## Features
 
 - **Unlimited Storage**: Store files of any size through automatic chunking
